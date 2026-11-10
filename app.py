@@ -28,7 +28,7 @@ def buscar_horarios():
     except Exception as e:
         return None
 
-st.title("🚌 Radar 4113-10")
+st.title("🚌 Radar Gentil 4113-10")
 st.subheader("📍 Av. Nazaré, 28 (Hosp. Ipiranga)")
 
 if st.button("🔄 Atualizar Horários", use_container_width=True):

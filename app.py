@@ -16,7 +16,7 @@ LINHAS_CONFIG = {
         "codigo_parada": 330016305,
         "descricao_ponto": "📍 Av. Nazaré, 28 (Hosp. Ipiranga)",
     },
-    "5028-10 - Heliópolis": {
+    "5028-10 - Alto do Ipiranga": {
         "codigo_linha": 78786,
         "codigo_parada": 330016305,
         "descricao_ponto": "📍 Ponto monitorado (Linha 5028-10)",

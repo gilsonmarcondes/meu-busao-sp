@@ -9,93 +9,93 @@ st.set_page_config(page_title="Meu Busão", page_icon="🚌", layout="centered")
 # Puxa a chave com segurança do cofre da nuvem
 TOKEN_API = st.secrets["SPTRANS_TOKEN"]
 
-# --- DICIONÁRIO DE LINHAS E PARAGENS ---
+# --- DICIONÁRIO DE LINHAS (SEM MENU LATERAL) ---
 LINHAS_CONFIG = {
     "4113-10 - Gentil de Moura": {
         "codigo_linha": 33536,
         "codigo_parada": 330016305,
-        "descricao_ponto": "📍 Av. Nazaré, 28 (Hosp. Ipiranga)",
     },
     "5028-10 - Metrô Alto do Ipiranga": {
-        "codigo_linha": (
-            78786
-        ),  # Código de referência da linha 5028-10 na API Olho Vivo
-        "codigo_parada": 330016305,  # Pode ajustar o código da parada se desejar outra
-        "descricao_ponto": (
-            "📍 Ponto monitorado (Linha 5028-10)"
-        ),
+        "codigo_linha": 78786,
+        "codigo_parada": 330016305,
     },
     "5030-10 - Maria Estela": {
-            "codigo_linha": (
-                82986
-            ),  # Código de referência da linha 5028-10 na API Olho Vivo
-            "codigo_parada": 330016305,  # Pode ajustar o código da parada se desejar outra
-            "descricao_ponto": (
-                "📍 Ponto monitorado (Linha 5030-10)"
-            ),
-        },
+        "codigo_linha": 82986,
+        "codigo_parada": 330016305,
+    },
 }
 
-# --- BARRA LATERAL PARA SELEÇÃO ---
-st.sidebar.header("🧭 Seleção de Linha")
-linha_selecionada = st.sidebar.selectbox(
-    "Escolha a linha:", list(LINHAS_CONFIG.keys())
-)
-
-# Puxa os dados da linha escolhida dinamicamente
-config_atual = LINHAS_CONFIG[linha_selecionada]
-CODIGO_LINHA = config_atual["codigo_linha"]
-CODIGO_PARADA = config_atual["codigo_parada"]
-
-URL_LOGIN = (
-    f"https://api.olhovivo.sptrans.com.br/v2.1/Login/Autenticar?token={TOKEN_API}"
-)
-URL_PREVISAO = f"https://api.olhovivo.sptrans.com.br/v2.1/Previsao?codigoParada={CODIGO_PARADA}&codigoLinha={CODIGO_LINHA}"
+st.title("🚌 Painel de Próximos Ônibus")
+st.subheader("📍 Av. Nazaré, 28 (Hosp. Ipiranga)")
 
 
-def buscar_horarios():
-  cj = http.cookiejar.CookieJar()
-  opener = urllib.request.build_opener(
-      urllib.request.HTTPCookieProcessor(cj)
-  )
-  opener.addheaders = [("User-Agent", "Mozilla/5.0")]
+def buscar_todas_as_previsoes():
+    cj = http.cookiejar.CookieJar()
+    opener = urllib.request.build_opener(
+        urllib.request.HTTPCookieProcessor(cj)
+    )
+    opener.addheaders = [("User-Agent", "Mozilla/5.0")]
 
-  try:
-    if (
-        opener.open(urllib.request.Request(URL_LOGIN, method="POST"))
-        .read()
-        .decode("utf-8")
-        == "true"
-    ):
-      dados = json.loads(
-          opener.open(urllib.request.Request(URL_PREVISAO))
-          .read()
-          .decode("utf-8")
-      )
-      if (
-          "p" in dados
-          and dados["p"]
-          and "l" in dados["p"]
-          and len(dados["p"]["l"]) > 0
-      ):
-        return dados["p"]["l"][0]["vs"]
-    return []
-  except Exception as e:
-    return None
+    url_login = f"https://api.olhovivo.sptrans.com.br/v2.1/Login/Autenticar?token={TOKEN_API}"
+    todas_as_previsoes = []
+
+    try:
+        # Faz o login único
+        if (
+            opener.open(urllib.request.Request(url_login, method="POST"))
+            .read()
+            .decode("utf-8")
+            == "true"
+        ):
+            # Varre cada linha configurada acima para o mesmo ponto
+            for nome_linha, config in LINHAS_CONFIG.items():
+                url_prev = f"https://api.olhovivo.sptrans.com.br/v2.1/Previsao?codigoParada={config['codigo_parada']}&codigoLinha={config['codigo_linha']}"
+                try:
+                    resposta = (
+                        opener.open(urllib.request.Request(url_prev))
+                        .read()
+                        .decode("utf-8")
+                    )
+                    dados = json.loads(resposta)
+
+                    if (
+                        "p" in dados
+                        and dados["p"]
+                        and "l" in dados["p"]
+                        and len(dados["p"]["l"]) > 0
+                    ):
+                        veiculos = dados["p"]["l"][0].get("vs", [])
+                        for v in veiculos:
+                            todas_as_previsoes.append({
+                                "linha": nome_linha,
+                                "horario": v.get("t"),
+                                "carro": v.get("p"),
+                            })
+                except Exception:
+                    continue
+
+            # Ordena todas as previsões juntas pelo horário crescente (ex: 10:25, 10:27, 10:32)
+            todas_as_previsoes.sort(key=lambda x: x["horario"])
+            return todas_as_previsoes
+
+        return None
+    except Exception as e:
+        return None
 
 
-st.title(f"🚌 Radar {linha_selecionada.split(' - ')[0]}")
-st.subheader(config_atual["descricao_ponto"])
+if st.button("🔄 Atualizar Todos os Horários", use_container_width=True):
+    with st.spinner("Consultando radares da SPTrans..."):
+        previsoes = buscar_todas_as_previsoes()
+        agora = datetime.now().strftime("%H:%M:%S")
 
-if st.button("🔄 Atualizar Horários", use_container_width=True):
-  veiculos = buscar_horarios()
-  agora = datetime.now().strftime("%H:%M:%S")
-
-  if veiculos is None:
-    st.error("❌ Falha ao conectar com a SPTrans.")
-  elif len(veiculos) == 0:
-    st.warning("😕 Nenhum ônibus a caminho neste momento para esta paragem.")
-  else:
-    st.caption(f"Última atualização: {agora}")
-    for v in veiculos[:4]:
-      st.success(f"⏰ **{v['t']}**  (Carro: {v['p']})")
+    if previsoes is None:
+        st.error("❌ Falha ao conectar com a SPTrans.")
+    elif len(previsoes) == 0:
+        st.warning("😕 Nenhum ônibus a caminho de nenhuma das linhas neste momento.")
+    else:
+        st.caption(f"Última atualização: {agora}")
+        for p in previsoes:
+            # Exibe o resultado misturado e em ordem cronológica!
+            st.success(
+                f"⏰ **{p['horario']}** — **{p['linha']}**  *(Carro: {p['carro']})*"
+            )

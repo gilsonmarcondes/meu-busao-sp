@@ -10,30 +10,32 @@ st.set_page_config(page_title="Meu Busão", page_icon="🚌", layout="centered")
 TOKEN_API = st.secrets["SPTRANS_TOKEN"]
 
 # --- DICIONÁRIO DE LINHAS E PARAGENS ---
-# Para adicionar uma nova linha, basta incluí-la neste dicionário com os códigos da SPTrans
 LINHAS_CONFIG = {
     "4113-10 - Gentil de Moura": {
         "codigo_linha": 33536,
         "codigo_parada": 330016305,
         "descricao_ponto": "📍 Av. Nazaré, 28 (Hosp. Ipiranga)",
     },
-    "5028-10 - Alto do Ipiranga": {
-        "codigo_linha": 78786,  # Substitua pelo código da nova linha na SPTrans
-        "codigo_parada": 330016305,  # Substitua pelo código da nova parada
-        "descricao_ponto": "📍 Descrição do novo ponto",
+    "5028-10 - Heliópolis": {
+        "codigo_linha": 78786,
+        "codigo_parada": 330016305,
+        "descricao_ponto": "📍 Ponto monitorado (Linha 5028-10)",
     },
 }
 
-# --- BARRA LATERAL PARA SELEÇÃO ---
-st.sidebar.header("Configurações")
-linha_selecionada = st.sidebar.selectbox(
-    "Escolha a linha e paragem:", list(LINHAS_CONFIG.keys())
+st.title("🚌 Meu Busão")
+
+# --- SELETOR LOGO ABAIXO DO TÍTULO (Ótimo para o telemóvel) ---
+linha_selecionada = st.selectbox(
+    "Escolha a linha para monitorizar:", list(LINHAS_CONFIG.keys())
 )
 
 # Puxa os dados da linha escolhida
 config_atual = LINHAS_CONFIG[linha_selecionada]
 CODIGO_LINHA = config_atual["codigo_linha"]
 CODIGO_PARADA = config_atual["codigo_parada"]
+
+st.subheader(config_atual["descricao_ponto"])
 
 URL_LOGIN = (
     f"https://api.olhovivo.sptrans.com.br/v2.1/Login/Autenticar?token={TOKEN_API}"
@@ -71,9 +73,6 @@ def buscar_horarios():
   except Exception as e:
     return None
 
-
-st.title(f"🚌 Radar {linha_selecionada.split(' - ')[0]}")
-st.subheader(config_atual["descricao_ponto"])
 
 if st.button("🔄 Atualizar Horários", use_container_width=True):
   veiculos = buscar_horarios()

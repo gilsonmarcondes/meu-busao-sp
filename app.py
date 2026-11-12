@@ -16,26 +16,36 @@ LINHAS_CONFIG = {
         "codigo_parada": 330016305,
         "descricao_ponto": "📍 Av. Nazaré, 28 (Hosp. Ipiranga)",
     },
-    "5028-10 - Alto do Ipiranga": {
-        "codigo_linha": 78786,
-        "codigo_parada": 330016305,
-        "descricao_ponto": "📍 Ponto monitorado (Linha 5028-10)",
+    "5028-10 - Metrô Alto do Ipiranga": {
+        "codigo_linha": (
+            78786
+        ),  # Código de referência da linha 5028-10 na API Olho Vivo
+        "codigo_parada": 330016305,  # Pode ajustar o código da parada se desejar outra
+        "descricao_ponto": (
+            "📍 Ponto monitorado (Linha 5028-10)"
+        ),
     },
+    "5030-10 - Maria Estela": {
+            "codigo_linha": (
+                82986
+            ),  # Código de referência da linha 5028-10 na API Olho Vivo
+            "codigo_parada": 330016305,  # Pode ajustar o código da parada se desejar outra
+            "descricao_ponto": (
+                "📍 Ponto monitorado (Linha 5030-10)"
+            ),
+        },
 }
 
-st.title("🚌 Meu Busão")
-
-# --- SELETOR LOGO ABAIXO DO TÍTULO (Ótimo para o telemóvel) ---
-linha_selecionada = st.selectbox(
-    "Escolha a linha para monitorizar:", list(LINHAS_CONFIG.keys())
+# --- BARRA LATERAL PARA SELEÇÃO ---
+st.sidebar.header("🧭 Seleção de Linha")
+linha_selecionada = st.sidebar.selectbox(
+    "Escolha a linha:", list(LINHAS_CONFIG.keys())
 )
 
-# Puxa os dados da linha escolhida
+# Puxa os dados da linha escolhida dinamicamente
 config_atual = LINHAS_CONFIG[linha_selecionada]
 CODIGO_LINHA = config_atual["codigo_linha"]
 CODIGO_PARADA = config_atual["codigo_parada"]
-
-st.subheader(config_atual["descricao_ponto"])
 
 URL_LOGIN = (
     f"https://api.olhovivo.sptrans.com.br/v2.1/Login/Autenticar?token={TOKEN_API}"
@@ -74,6 +84,9 @@ def buscar_horarios():
     return None
 
 
+st.title(f"🚌 Radar {linha_selecionada.split(' - ')[0]}")
+st.subheader(config_atual["descricao_ponto"])
+
 if st.button("🔄 Atualizar Horários", use_container_width=True):
   veiculos = buscar_horarios()
   agora = datetime.now().strftime("%H:%M:%S")
@@ -81,7 +94,7 @@ if st.button("🔄 Atualizar Horários", use_container_width=True):
   if veiculos is None:
     st.error("❌ Falha ao conectar com a SPTrans.")
   elif len(veiculos) == 0:
-    st.warning("😕 Nenhum ônibus a caminho neste momento.")
+    st.warning("😕 Nenhum ônibus a caminho neste momento para esta paragem.")
   else:
     st.caption(f"Última atualização: {agora}")
     for v in veiculos[:4]:
